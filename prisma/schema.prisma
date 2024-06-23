@@ -1,0 +1,105 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model GovernanceAuthority {
+  id               String                @id @default(uuid())
+  name             String
+  did              String                @unique
+  organizations    Organization[]
+  namespaces       Namespace[]
+  assuranceLevels  AssuranceLevel[]
+  ownedRelationships    RegistryRelationship[] @relation("OwningRegistry")
+  relatedToRelationships RegistryRelationship[] @relation("RelatedRegistry")
+}
+
+model Organization {
+  id                    String            @id @default(uuid())
+  name                  String
+  did                   String            @unique
+  type                  OrganizationType
+  governanceAuthorityId String
+  governanceAuthority   GovernanceAuthority @relation(fields: [governanceAuthorityId], references: [id])
+  onboardedAt           DateTime          @default(now())
+  schemas               Schema[]
+}
+
+model Schema {
+  id              String       @id @default(uuid())
+  name            String
+  definition      Json
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  credentials     Credential[]
+}
+
+model Credential {
+  id                    String    @id @default(uuid())
+  type                  CredentialType
+  schemaId              String
+  schema                Schema    @relation(fields: [schemaId], references: [id])
+  definitionId          String
+  definition            CredentialDefinition @relation(fields: [definitionId], references: [id])
+  revocationRegistryId  String?
+  revocationRegistry    RevocationRegistry?  @relation(fields: [revocationRegistryId], references: [id])
+}
+
+model CredentialDefinition {
+  id          String       @id @default(uuid())
+  name        String
+  definition  Json
+  credentials Credential[]
+}
+
+model RevocationRegistry {
+  id          String       @id @default(uuid())
+  name        String
+  definition  Json
+  credentials Credential[]
+}
+
+model Namespace {
+  id                    String               @id @default(uuid())
+  name                  String               @unique
+  governanceAuthorityId String
+  governanceAuthority   GovernanceAuthority  @relation(fields: [governanceAuthorityId], references: [id])
+}
+
+model AssuranceLevel {
+  id                    String               @id @default(uuid())
+  name                  String
+  level                 Int
+  governanceAuthorityId String
+  governanceAuthority   GovernanceAuthority  @relation(fields: [governanceAuthorityId], references: [id])
+}
+
+model RegistryRelationship {
+  id                String               @id @default(uuid())
+  registryId        String
+  registry          GovernanceAuthority  @relation("OwningRegistry", fields: [registryId], references: [id])
+  relatedRegistryId String
+  relatedRegistry   GovernanceAuthority  @relation("RelatedRegistry", fields: [relatedRegistryId], references: [id])
+  relationshipType  String
+}
+
+enum OrganizationType {
+  ISSUER
+  VERIFIER
+  OTHER_TYPE
+}
+
+enum CredentialType {
+  ANONCREDS
+  W3C
+}
