@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -20,6 +17,7 @@ model GovernanceAuthority {
   organizations    Organization[]
   namespaces       Namespace[]
   assuranceLevels  AssuranceLevel[]
+  schemas          Schema[] 
   ownedRelationships    RegistryRelationship[] @relation("OwningRegistry")
   relatedToRelationships RegistryRelationship[] @relation("RelatedRegistry")
 }
@@ -31,42 +29,25 @@ model Organization {
   type                  OrganizationType
   governanceAuthorityId String
   governanceAuthority   GovernanceAuthority @relation(fields: [governanceAuthorityId], references: [id])
+  namespaceId           String
+  namespace             Namespace         @relation(fields: [namespaceId], references: [id])
+  assuranceLevelId      String
+  assuranceLevel        AssuranceLevel    @relation(fields: [assuranceLevelId], references: [id])
   onboardedAt           DateTime          @default(now())
   schemas               Schema[]
+  attributes Json? 
 }
 
 model Schema {
   id              String       @id @default(uuid())
   name            String
-  definition      Json
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id])
-  credentials     Credential[]
-}
-
-model Credential {
-  id                    String    @id @default(uuid())
-  type                  CredentialType
-  schemaId              String
-  schema                Schema    @relation(fields: [schemaId], references: [id])
-  definitionId          String
-  definition            CredentialDefinition @relation(fields: [definitionId], references: [id])
-  revocationRegistryId  String?
-  revocationRegistry    RevocationRegistry?  @relation(fields: [revocationRegistryId], references: [id])
-}
-
-model CredentialDefinition {
-  id          String       @id @default(uuid())
-  name        String
-  definition  Json
-  credentials Credential[]
-}
-
-model RevocationRegistry {
-  id          String       @id @default(uuid())
-  name        String
-  definition  Json
-  credentials Credential[]
+  type            SchemaType
+  w3cUri          String?
+  anonCredsSchemaId String?
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  governanceAuthorityId String               // Add this line
+  governanceAuthority   GovernanceAuthority  @relation(fields: [governanceAuthorityId], references: [id])
 }
 
 model Namespace {
@@ -74,6 +55,7 @@ model Namespace {
   name                  String               @unique
   governanceAuthorityId String
   governanceAuthority   GovernanceAuthority  @relation(fields: [governanceAuthorityId], references: [id])
+  organizations         Organization[]
 }
 
 model AssuranceLevel {
@@ -82,6 +64,7 @@ model AssuranceLevel {
   level                 Int
   governanceAuthorityId String
   governanceAuthority   GovernanceAuthority  @relation(fields: [governanceAuthorityId], references: [id])
+  organizations         Organization[]
 }
 
 model RegistryRelationship {
@@ -99,7 +82,7 @@ enum OrganizationType {
   OTHER_TYPE
 }
 
-enum CredentialType {
-  ANONCREDS
+enum SchemaType {
   W3C
+  ANONCREDS
 }
