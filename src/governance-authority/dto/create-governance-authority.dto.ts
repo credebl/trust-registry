@@ -1,12 +1,22 @@
-// src/governance-authority/dto/create-governance-authority.dto.ts
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsOptional, IsArray } from 'class-validator';
 
 export class CreateGovernanceAuthorityDto {
   @IsString()
-  @IsNotEmpty()
   name: string;
 
   @IsString()
-  @IsNotEmpty()
   did: string;
+
+  @IsOptional()
+  @IsString()
+  type?: string;
+
+  @IsOptional()
+  @IsString()
+  serviceEndpoint?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  relatedAuthorities?: string[];
 }
